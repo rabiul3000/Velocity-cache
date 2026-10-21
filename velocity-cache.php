@@ -3,6 +3,7 @@
  * Plugin Name:       Velocity Cache
  * Description:       Free, open-source page caching for WordPress.
  * Version:           0.1.0
+ * Plugin URI:        https://github.com/rabiul3000/velocity-cache
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Md Rabiul Islam

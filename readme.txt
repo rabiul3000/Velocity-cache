@@ -14,6 +14,10 @@ Fast, free page caching for WordPress with automatic cache clearing and backgrou
 
 Velocity Cache saves a static copy of each public page and serves it to visitors before WordPress, your theme and your plugins have to run. Pages load faster and your server does less work.
 
+**Source code**
+
+Development happens on GitHub: https://github.com/rabiul3000/Velocity-cache
+
 **What it does**
 
 * **Page caching.** Visitors get a saved copy of the page, served by a lightweight drop-in that loads before WordPress.
