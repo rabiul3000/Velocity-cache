@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -7,25 +7,26 @@ defined( 'ABSPATH' ) || exit;
  * Cache-miss path: capture the rendered page and write it to disk.
  *
  * The drop-in already decided the *request* is cacheable and recorded where to
- * write it ($GLOBALS['velocity_cache_target']). This class adds the checks that
+ * write it ($GLOBALS['cache_shark_target']). This class adds the checks that
  * are only possible once WordPress has parsed the request and rendered the page.
  */
 class PageCache {
 
 	public function boot(): void {
-		// Priority 100: after core's canonical redirect (10), so redirects are never buffered.
+		// Priority 100: after core's canonical redirect (10), so redirects are never captured.
 		add_action( 'template_redirect', array( $this, 'maybe_start' ), 100 );
 	}
 
 	public function maybe_start(): void {
-		$target = $GLOBALS['velocity_cache_target'] ?? '';
-		if ( '' === $target || 0 !== strpos( $target, VELOCITY_CACHE_BASE . '/' ) ) {
+		$target = $GLOBALS['cache_shark_target'] ?? '';
+		if ( '' === $target || 0 !== strpos( $target, CACHE_SHARK_BASE . '/' ) ) {
 			return; // Drop-in did not run, or target is outside our folder: do nothing.
 		}
 		if ( ! $this->request_is_cacheable() ) {
 			return;
 		}
-		ob_start( array( $this, 'capture' ) );
+		// WordPress 6.9+ owns the output buffer and hands us the finished page. We never open or close one ourselves.
+		add_filter( 'wp_template_enhancement_output_buffer', array( $this, 'capture' ), 1000 );
 	}
 
 	private function request_is_cacheable(): bool {
@@ -49,28 +50,29 @@ class PageCache {
 		 *
 		 * @param bool $ok Whether the page may be cached.
 		 */
-		return (bool) apply_filters( 'velocity_cache_should_cache', $ok );
+		return (bool) apply_filters( 'cache_shark_should_cache', $ok );
 	}
 
 	/**
-	 * Output-buffer callback. Must always return the buffer unchanged so the
-	 * visitor sees the page even if caching fails.
+	 * Filter callback for the finished page. It always returns the page
+	 * unchanged, so the visitor sees it even if caching fails.
 	 *
 	 * @param string $buffer Rendered page.
-	 * @param int    $phase  PHP_OUTPUT_HANDLER_* flags.
+	 * @return string
 	 */
-	public function capture( $buffer, $phase = PHP_OUTPUT_HANDLER_FINAL ) {
+	public function capture( $buffer ) {
 		try {
-			if ( ! ( $phase & PHP_OUTPUT_HANDLER_FINAL ) ) {
-				return $buffer;
-			}
-			$target = $GLOBALS['velocity_cache_target'] ?? '';
+			$target = $GLOBALS['cache_shark_target'] ?? '';
 			$status = (int) http_response_code();
 			if ( '' !== $target && self::should_store( (string) $buffer, $status, headers_list() ) && ! ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE ) ) {
+				// Optimise only pages that are being cached. The visitor who triggers the
+				// cache write gets exactly the page every later visitor will get.
+				$out = Optimizer::run( (string) $buffer );
 				CacheStore::write_file(
 					$target,
-					$buffer . "\n<!-- Cached by Velocity Cache on " . gmdate( 'Y-m-d H:i:s' ) . " UTC -->\n"
+					$out . "\n<!-- Cached by Cache Shark on " . gmdate( 'Y-m-d H:i:s' ) . " UTC -->\n"
 				);
+				return $out;
 			}
 		} catch ( \Throwable $e ) {
 			// Never break the page because caching failed.

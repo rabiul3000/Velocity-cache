@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 

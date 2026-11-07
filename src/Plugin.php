@@ -1,12 +1,12 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
 /** Wires the components together. Holds no logic of its own beyond self-healing. */
 class Plugin {
 
-	const VERSION_OPTION = 'velocity_cache_version';
+	const VERSION_OPTION = 'cache_shark_version';
 
 	/** @var Purger */
 	private $purger;
@@ -38,14 +38,14 @@ class Plugin {
 	 * drop-in or rules; both must be restored without the user doing anything.
 	 */
 	public function self_heal(): void {
-		if ( ! is_file( VELOCITY_CACHE_BASE . '/config.php' ) ) {
+		if ( ! is_file( CACHE_SHARK_BASE . '/config.php' ) ) {
 			Settings::write_config();
 		}
-		if ( get_option( self::VERSION_OPTION ) !== VELOCITY_CACHE_VERSION ) {
+		if ( get_option( self::VERSION_OPTION ) !== CACHE_SHARK_VERSION ) {
 			Installer::maybe_upgrade_dropin();
 			Settings::write_config();
 			Htaccess::insert();
-			update_option( self::VERSION_OPTION, VELOCITY_CACHE_VERSION );
+			update_option( self::VERSION_OPTION, CACHE_SHARK_VERSION );
 		}
 	}
 }

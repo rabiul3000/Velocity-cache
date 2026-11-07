@@ -1,10 +1,10 @@
-=== Velocity Cache ===
+=== Cache Shark ===
 Contributors: mdraabiul
 Tags: cache, page cache, performance, speed, preload
-Requires at least: 6.0
+Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,11 +12,7 @@ Fast, free page caching for WordPress with automatic cache clearing and backgrou
 
 == Description ==
 
-Velocity Cache saves a static copy of each public page and serves it to visitors before WordPress, your theme and your plugins have to run. Pages load faster and your server does less work.
-
-**Source code**
-
-Development happens on GitHub: https://github.com/rabiul3000/Velocity-cache
+Cache Shark saves a static copy of each public page and serves it to visitors before WordPress, your theme and your plugins have to run. Pages load faster and your server does less work.
 
 **What it does**
 
@@ -25,6 +21,7 @@ Development happens on GitHub: https://github.com/rabiul3000/Velocity-cache
 * **Preloading.** After the cache is cleared, pages are warmed in the background from your sitemap, a few at a time, so visitors rarely hit an uncached page.
 * **GZIP compression and browser caching** rules for Apache and LiteSpeed servers.
 * **Expired page cleanup** keeps the cache folder from growing forever.
+* **Lazy loading** for images and embedded videos or maps, so offscreen media loads only when a visitor scrolls near it. Off by default; the first images on each page are never delayed.
 
 **Safe by default**
 
@@ -32,17 +29,17 @@ Pages are never cached for logged-in users, commenters, password-protected posts
 
 **Not included yet**
 
-CSS and JavaScript minification, delayed JavaScript, lazy loading, critical CSS, CDN and database cleanup are planned for later releases. Multisite network activation is not supported yet.
+CSS and JavaScript minification, delayed JavaScript, critical CSS, CDN and database cleanup are planned for later releases. Multisite network activation is not supported yet.
 
 **Privacy**
 
-Velocity Cache does not collect data, does not use cookies and does not contact any external service. Preloading only requests pages from your own site.
+Cache Shark does not collect data, does not use cookies and does not contact any external service. Preloading only requests pages from your own site.
 
 == Installation ==
 
-1. Upload the `velocity-cache` folder to `/wp-content/plugins/`, or install the plugin from the Plugins screen.
+1. Upload the `cache-shark` folder to `/wp-content/plugins/`, or install the plugin from the Plugins screen.
 2. Activate the plugin.
-3. Open **Settings > Velocity Cache** and check that the status table shows "Yes" for every row.
+3. Open **Settings > Cache Shark** and check that the status table shows "Yes" for every row.
 
 If `wp-config.php` is not writable, the plugin shows the one line to add yourself: `define( 'WP_CACHE', true );`
 
@@ -50,15 +47,15 @@ If `wp-config.php` is not writable, the plugin shows the one line to add yoursel
 
 = How do I know it is working? =
 
-Load a page twice while logged out and look at the response headers. The first request shows `X-Velocity-Cache: MISS` and the second shows `X-Velocity-Cache: HIT`. You can also view the page source: cached pages end with an HTML comment saying when they were cached.
+Load a page twice while logged out and look at the response headers. The first request shows `X-Cache-Shark: MISS` and the second shows `X-Cache-Shark: HIT`. You can also view the page source: cached pages end with an HTML comment saying when they were cached.
 
 = Can I use it with another caching plugin? =
 
-No. Two page caching plugins both want `wp-content/advanced-cache.php`. If another plugin already owns that file, Velocity Cache does not overwrite it and shows a warning. Deactivate the other plugin first.
+No. Two page caching plugins both want `wp-content/advanced-cache.php`. If another plugin already owns that file, Cache Shark does not overwrite it and shows a warning. Deactivate the other plugin first.
 
 = Does it work with WooCommerce? =
 
-Yes. Cart, checkout and account pages are never cached, and anyone with items in their cart gets live pages.
+Cart, checkout and account pages are excluded from the cache by design, and visitors with items in their cart always get live pages. If you use WooCommerce, test your checkout after activating, and add any custom shop pages to the "Never cache these URLs" setting.
 
 = Why is the cache lifespan only 10 hours by default? =
 
@@ -72,20 +69,30 @@ Page caching works on any server. The GZIP and browser caching rules are added t
 
 Preloading uses WP-Cron, which only runs when someone visits your site. On quiet sites, or if `DISABLE_WP_CRON` is set, add a server cron job that requests `wp-cron.php` every few minutes.
 
+= Lazy loading changed how my page looks. =
+
+Open Settings > Cache Shark and either untick lazy loading, raise "Skip the first images", or list the image's class name or file name under "Never lazy-load these". Clear the cache afterwards.
+
 = What happens when I deactivate or delete the plugin? =
 
 Deactivating removes the drop-in, the line it added to `wp-config.php`, its `.htaccess` rules and the cached files. Deleting the plugin also removes its settings. A drop-in belonging to another plugin is never touched.
 
 = A page I changed still shows old content. =
 
-Use **Clear all cache** on the settings page or in the admin bar. If a page shows content from another post (for example a related-posts list), it refreshes when its cache lifespan ends. Developers can add more URLs to clear with the `velocity_cache_related_urls` filter, or keep a page out of the cache with the `velocity_cache_should_cache` filter.
+Use **Clear all cache** on the settings page or in the admin bar. If a page shows content from another post (for example a related-posts list), it refreshes when its cache lifespan ends. Developers can add more URLs to clear with the `cache_shark_related_urls` filter, or keep a page out of the cache with the `cache_shark_should_cache` filter.
 
 == Changelog ==
+
+= 0.2.0 =
+* New: optional lazy loading for images and iframes (off by default). Skips the first images on each page, images that already have a loading attribute, tracking pixels and anything in your exclude list.
 
 = 0.1.0 =
 * First release: page caching, automatic purging, sitemap preloading, expired page cleanup, GZIP and browser caching rules for Apache and LiteSpeed, settings page.
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+Adds optional lazy loading. Nothing changes until you turn it on.
 
 = 0.1.0 =
 First release.
