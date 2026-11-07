@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -12,11 +12,11 @@ defined( 'ABSPATH' ) || exit;
  */
 class Preloader {
 
-	const BATCH_HOOK    = 'velocity_cache_preload_batch';
-	const CLEANUP_HOOK  = 'velocity_cache_cleanup';
-	const QUEUE_OPTION  = 'velocity_cache_preload_queue';
-	const PENDING       = 'velocity_cache_preload_pending';
-	const LOCK          = 'velocity_cache_preload_lock';
+	const BATCH_HOOK    = 'cache_shark_preload_batch';
+	const CLEANUP_HOOK  = 'cache_shark_cleanup';
+	const QUEUE_OPTION  = 'cache_shark_preload_queue';
+	const PENDING       = 'cache_shark_preload_pending';
+	const LOCK          = 'cache_shark_preload_lock';
 	const BATCH_SIZE    = 5;
 	const MAX_URLS      = 1000;
 	const MAX_SITEMAPS  = 30;
@@ -25,8 +25,8 @@ class Preloader {
 	public function boot(): void {
 		add_action( self::BATCH_HOOK, array( $this, 'run_batch' ) );
 		add_action( self::CLEANUP_HOOK, array( $this, 'cleanup' ) );
-		add_action( 'velocity_cache_purged_all', array( $this, 'start' ) );
-		add_action( 'velocity_cache_purged_urls', array( $this, 'enqueue' ) );
+		add_action( 'cache_shark_purged_all', array( $this, 'start' ) );
+		add_action( 'cache_shark_purged_urls', array( $this, 'enqueue' ) );
 		add_action( 'admin_init', array( $this, 'ensure_cleanup_scheduled' ) );
 	}
 
@@ -147,8 +147,8 @@ class Preloader {
 			array(
 				'timeout'     => 15,
 				'redirection' => 0,
-				'sslverify'   => (bool) apply_filters( 'velocity_cache_preload_sslverify', false ), // Same default core uses for self-requests.
-				'user-agent'  => 'VelocityCachePreload/' . VELOCITY_CACHE_VERSION,
+				'sslverify'   => (bool) apply_filters( 'cache_shark_preload_sslverify', false ), // Same default core uses for self-requests.
+				'user-agent'  => 'CacheSharkPreload/' . CACHE_SHARK_VERSION,
 			)
 		);
 	}
@@ -161,7 +161,7 @@ class Preloader {
 		$urls = array();
 
 		$sitemaps = (array) apply_filters(
-			'velocity_cache_sitemaps',
+			'cache_shark_sitemaps',
 			array( home_url( '/wp-sitemap.xml' ), home_url( '/sitemap_index.xml' ), home_url( '/sitemap.xml' ) )
 		);
 		foreach ( $sitemaps as $sitemap ) {
@@ -176,7 +176,7 @@ class Preloader {
 		}
 		array_unshift( $urls, home_url( '/' ) );
 
-		$limit = (int) apply_filters( 'velocity_cache_preload_limit', self::MAX_URLS );
+		$limit = (int) apply_filters( 'cache_shark_preload_limit', self::MAX_URLS );
 		return array_slice( self::same_host( array_values( array_unique( $urls ) ), $host ), 0, max( 1, $limit ) );
 	}
 
@@ -190,7 +190,7 @@ class Preloader {
 			$url,
 			array(
 				'timeout'             => 10,
-				'sslverify'           => (bool) apply_filters( 'velocity_cache_preload_sslverify', false ),
+				'sslverify'           => (bool) apply_filters( 'cache_shark_preload_sslverify', false ),
 				'limit_response_size' => self::MAX_XML_BYTES,
 			)
 		);

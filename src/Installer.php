@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -10,15 +10,15 @@ defined( 'ABSPATH' ) || exit;
  */
 class Installer {
 
-	const MARKER = '// Added by Velocity Cache';
+	const MARKER = '// Added by Cache Shark';
 
 	/* ---------- Lifecycle ---------- */
 
 	public static function activate( $network_wide = false ): void {
 		if ( $network_wide ) {
-			deactivate_plugins( plugin_basename( VELOCITY_CACHE_FILE ) );
+			deactivate_plugins( plugin_basename( CACHE_SHARK_FILE ) );
 			wp_die(
-				esc_html__( 'Velocity Cache does not support network activation yet. Please activate it on each site separately.', 'velocity-cache' ),
+				esc_html__( 'Cache Shark does not support network activation yet. Please activate it on each site separately.', 'cache-shark' ),
 				'',
 				array( 'back_link' => true )
 			);
@@ -31,7 +31,7 @@ class Installer {
 	}
 
 	public static function deactivate(): void {
-        Preloader::unschedule();
+		Preloader::unschedule();
 		Htaccess::remove();
 		self::set_wp_cache( false );
 		self::remove_dropin();
@@ -51,7 +51,7 @@ class Installer {
 			return 'missing';
 		}
 		$head = (string) file_get_contents( $file, false, null, 0, 4096 ); // phpcs:ignore WordPress.WP.AlternativeFunctions
-		return false !== strpos( $head, 'VELOCITY_CACHE_DROPIN_VERSION' ) ? 'ours' : 'foreign';
+		return false !== strpos( $head, 'CACHE_SHARK_DROPIN_VERSION' ) ? 'ours' : 'foreign';
 	}
 
 	/** Copy the bundled drop-in into wp-content. Never overwrites another plugin's drop-in. */
@@ -60,7 +60,7 @@ class Installer {
 		if ( 'foreign' === $state || ! is_writable( WP_CONTENT_DIR ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions
 			return false;
 		}
-		$src  = VELOCITY_CACHE_DIR . 'dropin/advanced-cache.php';
+		$src  = CACHE_SHARK_DIR . 'dropin/advanced-cache.php';
 		$dest = self::dropin_path();
 		if ( 'ours' === $state && md5_file( $src ) === md5_file( $dest ) ) {
 			return true; // Already current.
@@ -193,8 +193,8 @@ class Installer {
 		return array(
 			'dropin'    => self::dropin_state(),
 			'wp_cache'  => defined( 'WP_CACHE' ) && WP_CACHE,
-			'writable'  => wp_mkdir_p( VELOCITY_CACHE_BASE ) && is_writable( VELOCITY_CACHE_BASE ), // phpcs:ignore WordPress.WP.AlternativeFunctions
-			'config_ok' => is_file( VELOCITY_CACHE_BASE . '/config.php' ),
+			'writable'  => wp_mkdir_p( CACHE_SHARK_BASE ) && is_writable( CACHE_SHARK_BASE ), // phpcs:ignore WordPress.WP.AlternativeFunctions
+			'config_ok' => is_file( CACHE_SHARK_BASE . '/config.php' ),
 		);
 	}
 }

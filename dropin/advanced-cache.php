@@ -1,27 +1,27 @@
 <?php
 /**
- * Velocity Cache drop-in (advanced-cache.php).
+ * Cache Shark drop-in (advanced-cache.php).
  *
  * Runs very early in wp-settings.php, before plugins load. It is deliberately
  * self-contained: it must keep working (and fail safe) even if the plugin
  * folder is missing or broken.
  *
- * VELOCITY_CACHE_DROPIN_VERSION: 0.1.0
+ * CACHE_SHARK_DROPIN_VERSION: 0.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! defined( 'VELOCITY_CACHE_DROPIN_VERSION' ) ) {
-	define( 'VELOCITY_CACHE_DROPIN_VERSION', '0.1.0' );
+if ( ! defined( 'CACHE_SHARK_DROPIN_VERSION' ) ) {
+	define( 'CACHE_SHARK_DROPIN_VERSION', '0.1.0' );
 }
 
-if ( ! function_exists( 'velocity_cache_path_for' ) ) {
+if ( ! function_exists( 'cache_shark_path_for' ) ) {
 
 	/**
 	 * Map host + URL path + variant to a cache file. Returns null when the
 	 * URL cannot be mapped safely (never guess: collisions serve wrong pages).
 	 */
-	function velocity_cache_path_for( string $base, string $host, string $path, string $variant ): ?string {
+	function cache_shark_path_for( string $base, string $host, string $path, string $variant ): ?string {
 		$host = strtolower( $host );
 		if ( ! preg_match( '/^[a-z0-9.\-]+(:[0-9]+)?$/', $host ) ) {
 			return null;
@@ -63,7 +63,7 @@ if ( ! function_exists( 'velocity_cache_path_for' ) ) {
 	 * Decide whether this request must bypass the cache.
 	 * Returns a short reason string, or null if cacheable.
 	 */
-	function velocity_cache_bypass_reason( array $server, array $cookies, array $config ): ?string {
+	function cache_shark_bypass_reason( array $server, array $cookies, array $config ): ?string {
 		if ( 'GET' !== ( $server['REQUEST_METHOD'] ?? '' ) ) {
 			return 'method';
 		}
@@ -116,7 +116,7 @@ if ( ! function_exists( 'velocity_cache_path_for' ) ) {
 		return null;
 	}
 
-	function velocity_cache_variant( array $server, array $config ): string {
+	function cache_shark_variant( array $server, array $config ): string {
 		$https  = ! empty( $server['HTTPS'] ) && 'off' !== strtolower( (string) $server['HTTPS'] );
 		$https  = $https || ( '443' === (string) ( $server['SERVER_PORT'] ?? '' ) );
 		$https  = $https || ( 'https' === strtolower( (string) ( $server['HTTP_X_FORWARDED_PROTO'] ?? '' ) ) );
@@ -130,48 +130,48 @@ if ( ! function_exists( 'velocity_cache_path_for' ) ) {
 	 *
 	 * This file runs before WordPress loads, so wp_unslash() and sanitize_*() do
 	 * not exist yet. Control characters are stripped here, and the value is then
-	 * strictly validated by velocity_cache_path_for() before it touches the disk.
+	 * strictly validated by cache_shark_path_for() before it touches the disk.
 	 */
-	function velocity_cache_server_value( string $key ): string {
+	function cache_shark_server_value( string $key ): string {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- see the docblock above.
 		$value = isset( $_SERVER[ $key ] ) && is_string( $_SERVER[ $key ] ) ? $_SERVER[ $key ] : '';
 		return (string) preg_replace( '/[\x00-\x1F\x7F]/', '', $value );
 	}
 
-	function velocity_cache_dropin_run(): void {
+	function cache_shark_dropin_run(): void {
 		if ( 'cli' === PHP_SAPI || ! defined( 'WP_CONTENT_DIR' ) ) {
 			return;
 		}
-		$base   = WP_CONTENT_DIR . '/cache/velocity-cache';
+		$base   = WP_CONTENT_DIR . '/cache/cache-shark';
 		$config = @include $base . '/config.php';
 		if ( ! is_array( $config ) || empty( $config['enabled'] ) ) {
 			return;
 		}
-		if ( null !== velocity_cache_bypass_reason( $_SERVER, $_COOKIE, $config ) ) {
+		if ( null !== cache_shark_bypass_reason( $_SERVER, $_COOKIE, $config ) ) {
 			return;
 		}
 
-		$uri  = explode( '?', velocity_cache_server_value( 'REQUEST_URI' ), 2 )[0];
-		$host = velocity_cache_server_value( 'HTTP_HOST' );
-		$file = velocity_cache_path_for( $base, $host, $uri, velocity_cache_variant( $_SERVER, $config ) );
+		$uri  = explode( '?', cache_shark_server_value( 'REQUEST_URI' ), 2 )[0];
+		$host = cache_shark_server_value( 'HTTP_HOST' );
+		$file = cache_shark_path_for( $base, $host, $uri, cache_shark_variant( $_SERVER, $config ) );
 		if ( null === $file ) {
 			return;
 		}
 
 		// Tell the plugin (loaded later) where to write this page if it is a miss.
-		$GLOBALS['velocity_cache_target'] = $file;
+		$GLOBALS['cache_shark_target'] = $file;
 
 		$mtime = is_file( $file ) ? (int) @filemtime( $file ) : 0;
 		$ttl   = (int) ( $config['ttl'] ?? 0 );
 		if ( ! $mtime || ( $ttl > 0 && ( time() - $mtime ) > $ttl ) ) {
-			header( 'X-Velocity-Cache: MISS' );
+			header( 'X-Cache-Shark: MISS' );
 			return;
 		}
 
 		$last_modified = gmdate( 'D, d M Y H:i:s', $mtime ) . ' GMT';
-		$ims           = velocity_cache_server_value( 'HTTP_IF_MODIFIED_SINCE' );
+		$ims           = cache_shark_server_value( 'HTTP_IF_MODIFIED_SINCE' );
 		if ( '' !== $ims && @strtotime( $ims ) >= $mtime ) {
-			header( 'X-Velocity-Cache: HIT' );
+			header( 'X-Cache-Shark: HIT' );
 			header( 'Last-Modified: ' . $last_modified );
 			http_response_code( 304 );
 			exit;
@@ -180,11 +180,11 @@ if ( ! function_exists( 'velocity_cache_path_for' ) ) {
 		// Read before sending headers: if the file vanished (a purge just ran), fall through to WordPress.
 		$html = @file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		if ( false === $html ) {
-			header( 'X-Velocity-Cache: MISS' );
+			header( 'X-Cache-Shark: MISS' );
 			return;
 		}
 		header( 'Content-Type: text/html; charset=UTF-8' );
-		header( 'X-Velocity-Cache: HIT' );
+		header( 'X-Cache-Shark: HIT' );
 		header( 'Last-Modified: ' . $last_modified );
 		header( 'Cache-Control: no-cache, must-revalidate' ); // Browser always revalidates; 304s are cheap.
 		header( 'Content-Length: ' . strlen( $html ) );
@@ -194,6 +194,6 @@ if ( ! function_exists( 'velocity_cache_path_for' ) ) {
 }
 
 // The plugin includes this file only to reuse the helper functions above.
-if ( ! defined( 'VELOCITY_CACHE_LOADING_MAPPER' ) ) {
-	velocity_cache_dropin_run();
+if ( ! defined( 'CACHE_SHARK_LOADING_MAPPER' ) ) {
+	cache_shark_dropin_run();
 }

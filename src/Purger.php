@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -31,7 +31,7 @@ class Purger {
 		add_action( 'post_updated', array( $this, 'on_post_updated' ), 10, 3 );
 		add_action( 'before_delete_post', array( $this, 'on_before_delete' ) );
 
-		foreach ( array( 'comment_post', 'edit_comment', 'wp_set_comment_status', 'trashed_comment', 'untrashed_comment', 'deleted_comment', 'spammed_comment', 'unspammed_comment' ) as $hook ) {
+		foreach ( array( 'comment_post', 'edit_comment', 'wp_set_comment_status', 'trashed_comment', 'untrashed_comment', 'delete_comment', 'spammed_comment', 'unspammed_comment' ) as $hook ) {
 			add_action( $hook, array( $this, 'on_comment' ) );
 		}
 
@@ -71,6 +71,7 @@ class Purger {
 		}
 	}
 
+	/** Hooked to delete_comment (fires before the row is removed) so the comment can still be read. */
 	public function on_comment( $comment_id ): void {
 		$comment = get_comment( $comment_id );
 		if ( $comment && $comment->comment_post_ID ) {
@@ -116,7 +117,7 @@ class Purger {
 			CacheStore::purge_url( $url );
 			CacheStore::purge_pagination( $url ); // /page/2/, /page/3/ ... of archives.
 		}
-		do_action( 'velocity_cache_purged_urls', $urls );
+		do_action( 'cache_shark_purged_urls', $urls );
 	}
 
 	/** Clear everything. Runs at most once per request, however many hooks fire. */
@@ -126,7 +127,7 @@ class Purger {
 		}
 		self::$purged_all = true;
 		CacheStore::purge_all();
-		do_action( 'velocity_cache_purged_all' );
+		do_action( 'cache_shark_purged_all' );
 	}
 
 	/* ---------- Which URLs does a post affect? ---------- */
@@ -173,6 +174,6 @@ class Purger {
 		 * @param string[] $urls URLs.
 		 * @param \WP_Post $post The changed post.
 		 */
-		return (array) apply_filters( 'velocity_cache_related_urls', $urls, $post );
+		return (array) apply_filters( 'cache_shark_related_urls', $urls, $post );
 	}
 }

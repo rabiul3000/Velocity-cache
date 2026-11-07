@@ -1,5 +1,5 @@
 <?php
-namespace VelocityCache;
+namespace CacheShark;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -14,16 +14,16 @@ class CacheStore {
 			return null;
 		}
 		$host = $parts['host'] . ( isset( $parts['port'] ) ? ':' . $parts['port'] : '' );
-		return velocity_cache_path_for( VELOCITY_CACHE_BASE, $host, $parts['path'] ?? '/', $variant );
+		return cache_shark_path_for( CACHE_SHARK_BASE, $host, $parts['path'] ?? '/', $variant );
 	}
 
 	private static function load_mapper(): void {
-		if ( ! function_exists( 'velocity_cache_path_for' ) ) {
+		if ( ! function_exists( 'cache_shark_path_for' ) ) {
 			// This constant makes the drop-in define its helper functions without serving a page.
-			if ( ! defined( 'VELOCITY_CACHE_LOADING_MAPPER' ) ) {
-				define( 'VELOCITY_CACHE_LOADING_MAPPER', true );
+			if ( ! defined( 'CACHE_SHARK_LOADING_MAPPER' ) ) {
+				define( 'CACHE_SHARK_LOADING_MAPPER', true );
 			}
-			require_once VELOCITY_CACHE_DIR . 'dropin/advanced-cache.php';
+			require_once CACHE_SHARK_DIR . 'dropin/advanced-cache.php';
 		}
 	}
 
@@ -47,7 +47,7 @@ class CacheStore {
 	}
 
 	private static function protect_root(): void {
-		$index = VELOCITY_CACHE_BASE . '/index.php';
+		$index = CACHE_SHARK_BASE . '/index.php';
 		if ( ! file_exists( $index ) ) {
 			@file_put_contents( $index, "<?php\n// Silence is golden.\n" );
 		}
@@ -77,10 +77,10 @@ class CacheStore {
 
 	/** Delete everything (pages only; config.php is preserved). */
 	public static function purge_all(): void {
-		if ( ! is_dir( VELOCITY_CACHE_BASE ) ) {
+		if ( ! is_dir( CACHE_SHARK_BASE ) ) {
 			return;
 		}
-		foreach ( new \DirectoryIterator( VELOCITY_CACHE_BASE ) as $item ) {
+		foreach ( new \DirectoryIterator( CACHE_SHARK_BASE ) as $item ) {
 			if ( $item->isDot() || ! $item->isDir() ) {
 				continue;
 			}
@@ -94,12 +94,12 @@ class CacheStore {
 	 * @return int Number of pages removed.
 	 */
 	public static function purge_expired( int $ttl ): int {
-		if ( $ttl <= 0 || ! is_dir( VELOCITY_CACHE_BASE ) ) {
+		if ( $ttl <= 0 || ! is_dir( CACHE_SHARK_BASE ) ) {
 			return 0;
 		}
 		$cutoff  = time() - $ttl;
 		$removed = 0;
-		$it      = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( VELOCITY_CACHE_BASE, \FilesystemIterator::SKIP_DOTS ) );
+		$it      = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( CACHE_SHARK_BASE, \FilesystemIterator::SKIP_DOTS ) );
 		foreach ( $it as $f ) {
 			if ( ! $f->isFile() ) {
 				continue;
@@ -118,8 +118,8 @@ class CacheStore {
 
 	/** Remove the whole cache tree incl. config (used on uninstall). */
 	public static function destroy(): void {
-		if ( is_dir( VELOCITY_CACHE_BASE ) ) {
-			self::rrmdir( VELOCITY_CACHE_BASE );
+		if ( is_dir( CACHE_SHARK_BASE ) ) {
+			self::rrmdir( CACHE_SHARK_BASE );
 		}
 	}
 
@@ -146,8 +146,8 @@ class CacheStore {
 	public static function stats(): array {
 		$files = 0;
 		$bytes = 0;
-		if ( is_dir( VELOCITY_CACHE_BASE ) ) {
-			$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( VELOCITY_CACHE_BASE, \FilesystemIterator::SKIP_DOTS ) );
+		if ( is_dir( CACHE_SHARK_BASE ) ) {
+			$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( CACHE_SHARK_BASE, \FilesystemIterator::SKIP_DOTS ) );
 			foreach ( $it as $f ) {
 				if ( '.html' === substr( $f->getFilename(), -5 ) ) {
 					++$files;
